@@ -9,16 +9,12 @@ import {
 import Modal from "./Modal";
 import Popup_Infor_User from "./Popup_Infor_User";
 import { Link, useNavigate } from "react-router-dom";
-import { useContext } from "react";
-import { AuthContext } from "../context/authContext";
 
 export default function Sidebar() {
   const [showOption, setShowOption] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const navigate = useNavigate();
-
-  const { logout } = useContext(AuthContext);
 
   // Mở modal xác nhận đăng xuất
   const handleShowModal = () => {
