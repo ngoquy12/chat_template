@@ -16,6 +16,8 @@ export default function Sidebar() {
   const [showPopup, setShowPopup] = useState(false);
   const navigate = useNavigate();
 
+  const userLocal = JSON.parse(localStorage.getItem("userLocal"));
+
   // Mở modal xác nhận đăng xuất
   const handleShowModal = () => {
     setShowModal(true);
@@ -30,8 +32,8 @@ export default function Sidebar() {
   // Xác nhận đăng nhập
   const handleLogout = () => {
     setShowModal(false);
-    logout();
-    navigate("/login");
+    localStorage.removeItem("userLocal");
+    navigate("/");
   };
 
   // Mở popup thông tin tài khoản
@@ -50,13 +52,15 @@ export default function Sidebar() {
       {showModal && <Modal close={closeModal} handleOk={handleLogout} />}
 
       {/* Popup hiển thị thông tin cá nhân */}
-      {showPopup && <Popup_Infor_User close={handleClosePopup} />}
+      {showPopup && (
+        <Popup_Infor_User userId={userLocal.UserId} close={handleClosePopup} />
+      )}
 
       <div className="w-20 bg-blue-600 h-screen justify-between flex gap-5 flex-col items-center ">
         <div className="flex flex-col items-center gap-4 mt-8">
           <img
             className="h-12 w-12 border rounded-full p-1"
-            src="https://docs.nestjs.com/assets/logo-small.svg"
+            src={userLocal.Image}
             alt=""
           />
           <Link to="/chat" className="relative  p-6 cursor-pointer">

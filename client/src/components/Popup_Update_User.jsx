@@ -1,8 +1,42 @@
-import { CloseOutlined, EditOutlined } from "@ant-design/icons";
-import { DatePicker, Input, Radio } from "antd";
-import React from "react";
+import { CloseOutlined } from "@ant-design/icons";
+import { Input, Radio } from "antd";
+import React, { useEffect, useState } from "react";
+import instance from "../api/apiConfig";
+import moment from "moment";
 
-export default function Popup_Update_User({ close }) {
+export default function Popup_Update_User({ close, userId }) {
+  const [user, setUser] = useState({
+    UserName: "",
+    Gender: "",
+    DateOfBirth: "",
+  });
+  const [gender, setGender] = useState(user.Gender);
+
+  console.log("gender", gender);
+
+  // Lấy thông tin một user theo id
+  useEffect(() => {
+    instance
+      .get(`users/${userId}`)
+      .then((res) => {
+        setUser(res.data);
+        setUser(res.data.Gender);
+      })
+      .catch((err) => console.log(err));
+  }, []);
+
+  const handleChange = (e) => {
+    const { value, name } = e.target;
+    setUser({
+      ...user,
+      [name]: value,
+    });
+  };
+
+  const handleChecked = (e) => {
+    setGender(e.target.value);
+  };
+
   return (
     <>
       <div className="z-50 fixed top-0 bottom-0 right-0 left-0 flex justify-center items-center">
@@ -33,7 +67,14 @@ export default function Popup_Update_User({ close }) {
               <label htmlFor="name" className="font-semibold">
                 Họ và tên
               </label>
-              <Input className="h-9" id="name" placeholder="Nhập họ và tên" />
+              <Input
+                onChange={handleChange}
+                name="UserName"
+                value={user.UserName}
+                className="h-9"
+                id="name"
+                placeholder="Nhập họ và tên"
+              />
             </div>
             <div className="border"></div>
             <h3 className="text-lg font-semibold">Thông tin cá nhân</h3>
@@ -41,16 +82,22 @@ export default function Popup_Update_User({ close }) {
               <label htmlFor="name" className="font-semibold">
                 Giới tính
               </label>
-              <Radio.Group>
-                <Radio value={1}>Nam</Radio>
-                <Radio value={2}>Nữ</Radio>
+              <Radio.Group value={gender} onChange={handleChecked}>
+                <Radio value={0}>Nam</Radio>
+                <Radio value={1}>Nữ</Radio>
               </Radio.Group>
             </div>
             <div className="flex flex-col gap-1">
               <label htmlFor="name" className="font-semibold">
                 Ngày sinh
               </label>
-              <DatePicker placeholder="Chọn ngày sinh" />
+              <Input
+                onChange={handleChange}
+                name="DateOfBirth"
+                type="date"
+                value={moment().format("YYYY-MM-DD", user.DateOfBirth)}
+                placeholder="Chọn ngày sinh"
+              />
             </div>
           </form>
           {/* Infor start */}
