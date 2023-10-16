@@ -16,7 +16,6 @@ module.exports.deleteRequest = async (req, res) => {
 
 module.exports.sendFriendRequest = async (req, res) => {
   const { UserSendId, UserReceiverId } = req.body;
-  console.log("UserSendId, UserReceiverId", UserSendId, UserReceiverId);
 
   const result = await friendService.sendFriendRequest(
     res,
@@ -78,5 +77,30 @@ module.exports.addFriendOnChat = async (req, res) => {
   console.log("UserIds, RoomId", UserIds, RoomId);
 
   const result = await friendService.addFriendOnChat(res, UserIds, RoomId);
+  return result;
+};
+
+// Thêm bạn bè vào nhóm chát
+module.exports.listChatUserWithFriend = async (req, res) => {
+  const { UserSendId, UserReceiverId } = req.body;
+
+  const result = await friendService.listChatUserWithFriend(
+    res,
+    UserSendId,
+    UserReceiverId
+  );
+  return result;
+};
+
+// Thêm tin nhắn giữa 2 user
+module.exports.addChatUserWithFriend = async (req, res) => {
+  const { UserSendId, UserReceiverId, Content } = req.body;
+
+  const result = await friendService.addChatUserWithFriend(
+    res,
+    UserSendId,
+    UserReceiverId,
+    Content
+  );
   return result;
 };

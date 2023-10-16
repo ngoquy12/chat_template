@@ -39,4 +39,13 @@ friendRouter.get("/list_friended/:id", friendController.listFriended);
 // Thêm bạn bè vào nhóm chát
 friendRouter.post("/add_friend_on_chat", friendController.addFriendOnChat);
 
+// Lấy tin nhắn giữa 2 user
+friendRouter.post("/list_chat-user", friendController.listChatUserWithFriend);
+
+// Thêm tin nhắn giữa 2 user
+friendRouter.post(
+  "/add_chat_userWithFriend",
+  friendController.addChatUserWithFriend
+);
+
 module.exports = friendRouter;

@@ -1,9 +1,9 @@
 import {
   BellOutlined,
   FileImageOutlined,
+  MessageOutlined,
   SendOutlined,
   UserAddOutlined,
-  UsergroupAddOutlined,
 } from "@ant-design/icons";
 import React, { useEffect, useRef, useState } from "react";
 import { Input } from "antd";
@@ -11,6 +11,7 @@ import InputEmoji from "react-input-emoji";
 import moment from "moment";
 import instance from "../api/apiConfig";
 import Add_User_Chat from "./modals/Add_User_Chat";
+import { io } from "socket.io-client";
 
 export default function List_Chat() {
   const [search, setSearch] = useState("");
@@ -19,50 +20,105 @@ export default function List_Chat() {
   const [showDialog, setShowDialog] = useState(false);
   const inputRef = useRef(null);
   const userLocal = JSON.parse(localStorage.getItem("userLocal"));
-  const [listRoom, setListRoom] = useState([]);
   const [showModalAdd, setShowModalAdd] = useState(false);
-  const [roomId, setRoomId] = useState(null);
-  const [messages, setMessages] = useState([]);
   const bottomRef = useRef();
-  const [roomIdGroup, setRoomIdGroup] = useState(null);
   const [roomName, setRoomName] = useState("");
+  const [friends, setFriends] = useState([]);
+  const [friendChat, setFriendChat] = useState(null);
+  const [chatWithFriend, setChatWithFriend] = useState([]);
+  const [socket, setSocket] = useState(null);
+  const [messageSent, setMessageSent] = useState(false);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    const newSocket = io("http://localhost:3000");
+    setSocket(newSocket);
 
-  const loadListRoom = () => {
+    return () => {
+      newSocket.disconnect();
+    };
+  }, []);
+
+  // Send message
+  useEffect(() => {
+    if (socket === null) return;
+
+    socket.emit("sendMessage", { chatWithFriend, friendChat });
+    // Đã gửi tin nhắn, đặt trạng thái thành true
+    setMessageSent(true);
+  }, [chatWithFriend]);
+
+  // Gửi notification
+  useEffect(() => {
+    if (socket === null) return;
+
+    if (messageSent) {
+      socket.emit("newNotification", {
+        UserSendId: userLocal.UserId,
+        UserReceiverId: friendChat,
+        message: "Bạn có thông báo mới",
+      });
+
+      // Đã gửi thông báo, đặt trạng thái thành false
+      setMessageSent(false);
+    }
+  }, [messageSent, socket, userLocal, friendChat]);
+
+  // Lấy message mới nhất
+  useEffect(() => {
+    if (socket === null) return;
+
+    socket.on("getMessage", (message) => {
+      if (
+        (message.UserReceiverId === userLocal.UserId &&
+          message.UserSendId === friendChat) ||
+        (message.UserSendId === userLocal.UserId &&
+          message.UserReceiverId === friendChat)
+      ) {
+        setChatWithFriend((prevChat) => [...prevChat, message]);
+      }
+    });
+
+    return () => {
+      socket.off("getMessage");
+    };
+  }, [socket, chatWithFriend]);
+
+  // Lấy thông báo
+  useEffect(() => {
+    if (socket === null) return;
+
+    socket.on("notification", (message) => {
+      if (userLocal && userLocal.UserId === message.response.UserReceiverId) {
+        console.log("Bạn có thông báo mới");
+      }
+    });
+
+    return () => {
+      socket.off("notification");
+    };
+  }, [socket, userLocal]);
+
+  // Danh sách những bạn bè
+  const listFriend = () => {
     instance
-      .get(`rooms/list-room/${userLocal.UserId}`)
-      .then((res) => setListRoom(res.data.data))
+      .get(`friends/list_friended/${userLocal.UserId}`)
+      .then((res) => setFriends(res.data.data))
       .catch((err) => console.log(err));
   };
 
   useEffect(() => {
-    loadListRoom();
+    listFriend();
   }, []);
 
-  // Hiển thị modal thêm thành viên vào nhóm chát
-  const handleShow = (id) => {
-    setRoomId(id);
-    setShowModalAdd(true);
-  };
+  // scroll tin nhắn về đúng khung nhìn
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatWithFriend]);
 
   // Ẩn modal thêm thành viên vào nhóm chát
   const handleClose = () => {
     setShowModalAdd(false);
   };
-
-  const getMesssageByRoom = () => {
-    instance
-      .get(`chats/room/${roomIdGroup}`)
-      .then((res) => setMessages(res.data.data))
-      .catch((err) => console.log(err));
-  };
-
-  useEffect(() => {
-    getMesssageByRoom();
-  }, [roomIdGroup]);
 
   // Hàm định dạng thời gian dựa trên khoảng cách
   const formatTime = (timestamp) => {
@@ -80,34 +136,51 @@ export default function List_Chat() {
     }
   };
 
-  const handleSendMessage = (value) => {
+  // Lấy thông tin của user chat
+  const getInfoUserChat = (user) => {
+    setRoomName(user.UserName);
+    setFriendChat(user.UserId);
+  };
+
+  // Lấy chat 1 với 1
+  const listChatUserWithFriend = () => {
     instance
-      .post("chats", {
-        RoomId: roomIdGroup,
-        UserId: userLocal.UserId,
-        Content: value,
+      .post("friends/list_chat-user", {
+        UserSendId: userLocal.UserId,
+        UserReceiverId: friendChat,
       })
-      .then((res) => {
-        getMesssageByRoom();
-      })
+      .then((res) => setChatWithFriend(res.data.data))
       .catch((err) => console.log(err));
   };
 
-  // Lấy id của room
-  const getRoom = (id, name) => {
-    setRoomIdGroup(id);
-    setRoomName(name);
+  useEffect(() => {
+    listChatUserWithFriend();
+  }, [friendChat]);
+
+  // Nhắn tin 1 vs 1
+  const handleSendMessage = (value) => {
+    instance
+      .post("friends/add_chat_userWithFriend", {
+        UserSendId: userLocal.UserId,
+        UserReceiverId: friendChat,
+        Content: value,
+      })
+      .then(() => {
+        listChatUserWithFriend();
+        socket.emit("sendMessage", {
+          UserSendId: userLocal.UserId,
+          UserReceiverId: friendChat,
+          Content: value,
+        });
+      })
+      .catch((err) => console.log(err));
   };
 
   return (
     <>
       {/* Modal add user on chat */}
       {showModalAdd && (
-        <Add_User_Chat
-          roomId={roomId}
-          userId={userLocal.UserId}
-          close={handleClose}
-        />
+        <Add_User_Chat userId={userLocal.UserId} close={handleClose} />
       )}
 
       <div className="flex flex-col w-80 border">
@@ -160,21 +233,20 @@ export default function List_Chat() {
         </div>
         <div>
           <ul className="flex flex-col max-h-screen overflow-auto">
-            {listRoom.map((room) => (
-              <li
-                onClick={() => getRoom(room.RoomId, room.RoomName)}
-                className=" cursor-pointer px-6 py-3 gap-4 hover:bg-[#f9fafb]"
-              >
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold">{room.RoomName}</span>
-                  <UsergroupAddOutlined
-                    onClick={() => handleShow(room.RoomId)}
-                    className="cursor-pointer hover:bg-slate-300 p-2 rounded-full"
-                    title="Thêm thành viên"
-                  />
-                </div>
-              </li>
-            ))}
+            <li>
+              {friends.map((fr) => (
+                <li className=" cursor-pointer px-6 py-3 gap-4 hover:bg-[#f9fafb]">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold">{fr.UserName}</span>
+                    <MessageOutlined
+                      onClick={() => getInfoUserChat(fr)}
+                      className="cursor-pointer hover:bg-slate-300 p-2
+                    rounded-full"
+                    />
+                  </div>
+                </li>
+              ))}
+            </li>
           </ul>
         </div>
       </div>
@@ -183,14 +255,14 @@ export default function List_Chat() {
           <div className="flex flex-col w-full overflow-y-auto">
             <div className="h-20  flex items-center justify-between px-4 py-2 border-b w-full">
               <div className="flex items-center gap-4">
-                {/* <img
-              className="h-14 w-14 rounded-full"
-              src="https://img4.thuthuatphanmem.vn/uploads/2020/08/02/hinh-anh-dai-dien-facebook-den-ngau_013712452.jpg"
-              alt=""
-            /> */}
+                <img
+                  className="h-14 w-14 rounded-full"
+                  src="https://img4.thuthuatphanmem.vn/uploads/2020/08/02/hinh-anh-dai-dien-facebook-den-ngau_013712452.jpg"
+                  alt=""
+                />
                 <div className="flex flex-col gap-1">
                   <span className="font-semibold">{roomName}</span>
-                  <p className="text-sm">11 thành viên tham gia</p>
+                  <p className="text-sm">Hoạt động 11 phút trước</p>
                 </div>
               </div>
               <div>
@@ -232,9 +304,9 @@ export default function List_Chat() {
               className="bg-slate-200 w-full h-auto flex-1 p-5 overflow-auto"
               style={{ maxHeight: "calc(100vh - 160px)" }}
             >
-              {messages.map((mess) => (
+              {chatWithFriend?.map((mess) => (
                 <>
-                  {mess.UserId === userLocal.UserId ? (
+                  {mess.UserSendId === userLocal.UserId ? (
                     <>
                       <div className="flex justify-end mb-2">
                         <div className="bg-white w-auto min-w-[200px] max-w-[30%] p-2 text-black rounded-md flex flex-col">
@@ -249,9 +321,6 @@ export default function List_Chat() {
                     <>
                       <div className="flex justify-start mb-2">
                         <div className="bg-white w-auto min-w-[200px] max-w-[30%] p-2 text-black rounded-md flex flex-col">
-                          <span className="text-sm text-gray-400">
-                            Khải Phạm
-                          </span>
                           <span className="pb-2">{mess.Content}</span>
                           <span className="text-sm">
                             {formatTime(mess.CreatedDate)}

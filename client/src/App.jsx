@@ -6,7 +6,6 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 import PrivateRouter from "./routers/PrivateRouter";
 import Home from "./components/Home";
-import { useEffect } from "react";
 
 function App() {
   return (

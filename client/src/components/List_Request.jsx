@@ -3,12 +3,15 @@ import Sidebar from "./Sidebar";
 import { Button, Input, Modal, notification, message } from "antd";
 import instance from "../api/apiConfig";
 import { UserAddOutlined } from "@ant-design/icons";
+// import { io } from "socket.io-client";
 
 export default function List_Request() {
   const [messageApi, contextHolder] = message.useMessage();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [nameRoom, setNameRoom] = useState("");
-  const userLocal = JSON.parse(localStorage.getItem("userLocal"));
+  const [userLocal, setUserLocal] = useState(
+    JSON.parse(localStorage.getItem("userLocal"))
+  );
   const [error, setError] = useState("");
   const [requests, setRequests] = useState([]);
   const [friendSuggest, setFriendSuggest] = useState([]);
@@ -158,7 +161,10 @@ export default function List_Request() {
             Danh sách yêu cầu
           </div>
           {friendSuggest.map((fr) => (
-            <div className="flex justify-between items-center cursor-pointer py-3 px-5 hover:bg-[#E9F2FD]">
+            <div
+              key={fr.FriendId}
+              className="flex justify-between items-center cursor-pointer py-3 px-5 hover:bg-[#E9F2FD]"
+            >
               {fr.UserName}
               <UserAddOutlined
                 onClick={() => handleAddFriend(fr.UserId)}
@@ -174,7 +180,7 @@ export default function List_Request() {
           <hr />
           <div className="flex flex-wrap gap-4 p-8 ">
             {requests.map((req) => (
-              <div className="bg-white rounded-md p-2 w-80">
+              <div key={req.RequestId} className="bg-white rounded-md p-2 w-80">
                 <div className="flex gap-2 items-center mb-3">
                   <img
                     className="h-14 w-14 rounded-full"

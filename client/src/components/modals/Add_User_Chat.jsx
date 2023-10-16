@@ -5,10 +5,10 @@ import instance from "../../api/apiConfig";
 
 export default function Add_User_Chat({ close, userId, roomId }) {
   const [messageApi, contextHolder] = message.useMessage();
-  const userLocal = JSON.parse(localStorage.getItem("isLogin"));
-  const [friends, setFriends] = useState([]);
+  const userLocal = JSON.parse(localStorage.getItem("userLocal"));
   const [selectedUsers, setSelectedUsers] = useState([]);
 
+  const [friends, setFriends] = useState([]);
   const listFriend = () => {
     instance
       .get(`friends/list_friended/${userLocal.UserId}`)

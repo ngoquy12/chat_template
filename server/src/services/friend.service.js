@@ -32,6 +32,7 @@ module.exports.sendFriendRequest = async (res, userSendId, userReceiverId) => {
       "INSERT INTO friend_request (UserSendId, UserReceiverId, Status) VALUES (?, ?, ?)",
       [userSendId, userReceiverId, 0]
     );
+
     return res.status(201).json({
       status: 201,
       message: "Gửi lời mời kết bạn thành công.",
@@ -147,6 +148,47 @@ module.exports.addFriendOnChat = async (res, UserIds, RoomId) => {
     return res.status(201).json({
       status: 201,
       message: "Thêm thành viên vào nhóm thành công",
+    });
+  } catch (error) {
+    console.log(error);
+    return error;
+  }
+};
+
+module.exports.listChatUserWithFriend = async (
+  res,
+  UserSendId,
+  UserReceiverId
+) => {
+  console.log("UserSendId,UserReceiverId ", UserSendId, UserReceiverId);
+  try {
+    const [friends] = await pool.execute(
+      "SELECT UserSendId, UserReceiverId, Content, CreatedDate FROM private_chats WHERE (UserSendId = ? AND UserReceiverId = ?) OR (UserSendId = ? AND UserReceiverId = ?) ORDER BY CreatedDate",
+      [UserSendId, UserReceiverId, UserReceiverId, UserSendId]
+    );
+    return res.status(200).json({
+      status: 200,
+      data: friends,
+    });
+  } catch (error) {
+    console.log(error);
+    return error;
+  }
+};
+
+module.exports.addChatUserWithFriend = async (
+  res,
+  UserSendId,
+  UserReceiverId,
+  Content
+) => {
+  try {
+    await pool.execute(
+      "INSERT INTO private_chats (UserSendId, UserReceiverId, Content) VALUES (?,?,?)",
+      [UserSendId, UserReceiverId, Content]
+    );
+    return res.status(201).json({
+      status: 201,
     });
   } catch (error) {
     console.log(error);
